@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             xmlns:models="using:HardwareMonitor.Models"
+             x:Class="HardwareMonitor.Views.DetailView"
+             x:DataType="vm:MainViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <Grid ColumnDefinitions="Auto,*">
+        <Button Classes="ghostBtn" Content="‹ Back" Grid.Column="0"
+                Command="{Binding NavigateToCommand}" CommandParameter="Dashboard"
+                VerticalAlignment="Center" Margin="0,0,16,0"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock Text="{Binding SelectedHardwareType}" Foreground="#8d59cf" FontSize="11"
+                     FontWeight="Bold" LetterSpacing="2"/>
+          <TextBlock Text="{Binding SelectedHardwareName}" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Sensor Table -->
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,16,32,32" Spacing="2">
+
+        <!-- Empty state -->
+        <Border IsVisible="{Binding DetailShowEmpty}" Padding="40" HorizontalAlignment="Center">
+          <StackPanel Spacing="8" HorizontalAlignment="Center">
+            <TextBlock Text="No sensor data available" FontSize="16" Foreground="#7a7977"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="This hardware does not expose sensor readings." FontSize="12" Foreground="#6b6a68"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Table Header -->
+        <Border Background="#160231" Padding="16,10" BorderBrush="#2f006b" BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="2*,*,*,*,*">
+            <TextBlock Grid.Column="0" Text="SENSOR" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1"/>
+            <TextBlock Grid.Column="1" Text="TYPE" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1"/>
+            <TextBlock Grid.Column="2" Text="VALUE" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+            <TextBlock Grid.Column="3" Text="MIN" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+            <TextBlock Grid.Column="4" Text="MAX" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+          </Grid>
+        </Border>
+
+        <!-- Sensor Rows -->
+        <ItemsControl ItemsSource="{Binding SelectedSensors}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:SensorReading">
+              <Border Classes="sensorRow" BorderBrush="#1a0033" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="2*,*,*,*,*">
+                  <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13" Foreground="#ffffff"
+                             VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="{Binding SensorType}" FontSize="11" Foreground="#7a7977"
+                             VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" Text="{Binding FormattedValue}" FontSize="13" FontWeight="SemiBold"
+                             Foreground="#00ffec" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="3" Text="{Binding FormattedMin}" FontSize="12" Foreground="#7b3fdb"
+                             HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="4" Text="{Binding FormattedMax}" FontSize="12" Foreground="#ffa42c"
+                             HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

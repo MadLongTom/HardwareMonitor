@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             x:Class="HardwareMonitor.Views.StorageDetailView"
+             x:DataType="vm:MainViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <Grid ColumnDefinitions="Auto,*">
+        <Button Classes="ghostBtn" Content="‹ Back" Grid.Column="0"
+                Command="{Binding NavigateToCommand}" CommandParameter="Dashboard"
+                VerticalAlignment="Center" Margin="0,0,16,0"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock Text="STORAGE" Foreground="#8d59cf" FontSize="11" FontWeight="Bold" LetterSpacing="2"/>
+          <TextBlock Text="Drives" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,20,32,32" Spacing="12">
+
+        <ItemsControl ItemsSource="{Binding StorageItems}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:StorageItem">
+              <Border Classes="card" Margin="0,0,0,8" Padding="24,18">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+
+                  <!-- Row 0: Name + Temp -->
+                  <StackPanel Grid.Row="0" Spacing="2">
+                    <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Bold" Foreground="#ffffff"/>
+                    <TextBlock FontSize="11" Foreground="#7a7977">
+                      <Run Text="Capacity: "/>
+                      <Run Text="{Binding TotalSpace}"/>
+                      <Run Text="  ·  Free: "/>
+                      <Run Text="{Binding FreeSpace}"/>
+                    </TextBlock>
+                  </StackPanel>
+
+                  <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="20"
+                              VerticalAlignment="Top" HorizontalAlignment="Right">
+                    <StackPanel HorizontalAlignment="Center">
+                      <TextBlock Text="TEMP" FontSize="8" Foreground="#7a7977" FontWeight="Bold"
+                                 LetterSpacing="1" HorizontalAlignment="Center"/>
+                      <TextBlock Text="{Binding Temp}" FontSize="18" FontWeight="Bold"
+                                 Foreground="#ffa42c" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel HorizontalAlignment="Center">
+                      <TextBlock Text="HEALTH" FontSize="8" Foreground="#7a7977" FontWeight="Bold"
+                                 LetterSpacing="1" HorizontalAlignment="Center"/>
+                      <TextBlock Text="{Binding Health}" FontSize="18" FontWeight="Bold"
+                                 Foreground="#00ffec" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- Row 1: Usage bar -->
+                  <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0" ColumnDefinitions="*,Auto">
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding UsedPercent}" Height="6"
+                                 Foreground="#4f00b5" Background="#0d001a"/>
+                    <TextBlock Grid.Column="1" Text="{Binding UsedPercent, StringFormat='{}{0:F0}% used'}"
+                               FontSize="11" Foreground="#a5a29d" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                  </Grid>
+
+                  <!-- Row 2: IO throughput -->
+                  <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="24" Margin="0,10,0,0">
+                    <TextBlock FontSize="10" Foreground="#7a7977">
+                      <Run Text="Read: "/>
+                      <Run Text="{Binding ReadSpeed}" Foreground="#00ffec"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="#7a7977">
+                      <Run Text="Write: "/>
+                      <Run Text="{Binding WriteSpeed}" Foreground="#ffa42c"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="#7a7977" IsVisible="{Binding Temp2, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <Run Text="{Binding Temp2}" Foreground="#a5a29d"/>
+                    </TextBlock>
+                  </StackPanel>
+
+                  <!-- Row 3: SMART details -->
+                  <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="24" Margin="0,8,0,0">
+                    <TextBlock FontSize="10" Foreground="#7a7977">
+                      <Run Text="Written: "/>
+                      <Run Text="{Binding DataWritten}" Foreground="#a5a29d"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="#7a7977">
+                      <Run Text="Read: "/>
+                      <Run Text="{Binding DataRead}" Foreground="#a5a29d"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="#7a7977">
+                      <Run Text="Power On: "/>
+                      <Run Text="{Binding PowerOnHours}" Foreground="#a5a29d"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="#7a7977">
+                      <Run Text="Spare: "/>
+                      <Run Text="{Binding AvailableSpare}" Foreground="#a5a29d"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="#7a7977">
+                      <Run Text="Wear: "/>
+                      <Run Text="{Binding WearLevel}" Foreground="#a5a29d"/>
+                    </TextBlock>
+                  </StackPanel>
+
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

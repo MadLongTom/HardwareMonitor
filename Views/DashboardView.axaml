@@ -1,0 +1,148 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             xmlns:models="using:HardwareMonitor.Models"
+             xmlns:conv="using:HardwareMonitor.Converters"
+             xmlns:ctrl="using:HardwareMonitor.Controls"
+             x:Class="HardwareMonitor.Views.DashboardView"
+             x:DataType="vm:MainViewModel">
+
+  <UserControl.Resources>
+    <conv:LoadToColorConverter x:Key="LoadToColor"/>
+    <conv:TempToColorConverter x:Key="TempToColor"/>
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <StackPanel Spacing="2">
+        <TextBlock Text="DASHBOARD" FontSize="11" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+        <TextBlock Text="System Overview" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+    <StackPanel Margin="32,20,32,32" Spacing="24">
+
+      <!-- ═══ Top Summary Cards ═══ -->
+      <WrapPanel Orientation="Horizontal">
+
+        <!-- CPU Card -->
+        <Border Classes="card" Margin="0,0,12,12" MinWidth="280" MaxWidth="420">
+          <Button Command="{Binding SelectHardwareCommand}"
+                  CommandParameter="{Binding HardwareTree[0]}"
+                  Background="Transparent" HorizontalContentAlignment="Stretch"
+                  Padding="0" CornerRadius="0" Cursor="Hand" BorderThickness="0">
+            <StackPanel Margin="20,16" Spacing="10">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="CPU" FontSize="10" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+                  <ctrl:AnimatedValueTextBlock TargetValue="{Binding CpuLoadValue}" ValueFormat="F1" Unit="%"
+                                                FontSize="28" FontWeight="Bold" Foreground="#ffffff"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Spacing="2">
+                  <TextBlock Text="{Binding CpuTempText}" FontSize="16" FontWeight="SemiBold"
+                             Foreground="{Binding CpuTempText, Converter={StaticResource TempToColor}}"
+                             HorizontalAlignment="Right"/>
+                  <TextBlock Text="{Binding CpuPowerText}" FontSize="12" Foreground="#ffa42c" HorizontalAlignment="Right"/>
+                </StackPanel>
+              </Grid>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding CpuLoadValue}" Height="3"
+                           Foreground="{Binding CpuLoadValue, Converter={StaticResource LoadToColor}}"
+                           Background="#0d001a"/>
+              <TextBlock FontSize="10" Foreground="#7a7977" Text="{Binding CpuClockText}"/>
+            </StackPanel>
+          </Button>
+        </Border>
+
+        <!-- GPU Card -->
+        <Border Classes="card" Margin="0,0,12,12" MinWidth="280" MaxWidth="420">
+          <Button Command="{Binding NavigateToTypeCommand}"
+                  CommandParameter="Gpu"
+                  Background="Transparent" HorizontalContentAlignment="Stretch"
+                  Padding="0" CornerRadius="0" Cursor="Hand" BorderThickness="0">
+            <StackPanel Margin="20,16" Spacing="10">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="GPU" FontSize="10" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+                  <ctrl:AnimatedValueTextBlock TargetValue="{Binding GpuLoadValue}" ValueFormat="F0" Unit="%"
+                                                FontSize="28" FontWeight="Bold" Foreground="#ffffff"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Spacing="2">
+                  <TextBlock Text="{Binding GpuTempText}" FontSize="16" FontWeight="SemiBold"
+                             Foreground="{Binding GpuTempText, Converter={StaticResource TempToColor}}"
+                             HorizontalAlignment="Right"/>
+                  <TextBlock Text="{Binding GpuPowerText}" FontSize="12" Foreground="#ffa42c" HorizontalAlignment="Right"/>
+                </StackPanel>
+              </Grid>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding GpuLoadValue}" Height="3"
+                           Foreground="{Binding GpuLoadValue, Converter={StaticResource LoadToColor}}"
+                           Background="#0d001a"/>
+              <Grid ColumnDefinitions="*,*">
+                <TextBlock FontSize="10" Foreground="#7a7977" Text="{Binding GpuMemText}"/>
+                <TextBlock Grid.Column="1" FontSize="10" Foreground="#7a7977" Text="{Binding GpuFanText}" HorizontalAlignment="Right"/>
+              </Grid>
+            </StackPanel>
+          </Button>
+        </Border>
+
+        <!-- Memory Card -->
+        <Border Classes="card" Margin="0,0,12,12" MinWidth="280" MaxWidth="420">
+          <Button Command="{Binding NavigateToTypeCommand}"
+                  CommandParameter="Memory"
+                  Background="Transparent" HorizontalContentAlignment="Stretch"
+                  Padding="0" CornerRadius="0" Cursor="Hand" BorderThickness="0">
+            <StackPanel Margin="20,16" Spacing="10">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="MEMORY" FontSize="10" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+                  <ctrl:AnimatedValueTextBlock TargetValue="{Binding MemLoadValue}" ValueFormat="F1" Unit="%"
+                                                FontSize="28" FontWeight="Bold" Foreground="#ffffff"/>
+                </StackPanel>
+              </Grid>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemLoadValue}" Height="3"
+                           Foreground="{Binding MemLoadValue, Converter={StaticResource LoadToColor}}"
+                           Background="#0d001a"/>
+              <TextBlock FontSize="10" Foreground="#7a7977" Text="{Binding MemUsedText}"/>
+            </StackPanel>
+          </Button>
+        </Border>
+      </WrapPanel>
+
+      <!-- ═══ Hardware List ═══ -->
+      <StackPanel Spacing="8">
+        <TextBlock Text="HARDWARE" FontSize="11" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="3"/>
+
+        <Border Classes="surface" Padding="0">
+          <ItemsControl ItemsSource="{Binding HardwareTree}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:HardwareNode">
+                <Button Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).SelectHardwareCommand}"
+                        CommandParameter="{Binding}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Background="Transparent" Padding="0" Cursor="Hand" CornerRadius="0" BorderThickness="0">
+                  <Border Classes="sensorRow" BorderBrush="#1a0033" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="32,*,Auto,Auto">
+                      <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center"
+                                 HorizontalAlignment="Center"/>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                        <TextBlock Text="{Binding Name}" FontSize="13" Foreground="#ffffff" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding HardwareType}" Foreground="#7a7977" FontSize="10"/>
+                      </StackPanel>
+                      <TextBlock Grid.Column="2" Text="{Binding TotalSensorCount, StringFormat='{}{0} sensors'}"
+                                 Foreground="#7a7977" FontSize="11" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                      <TextBlock Grid.Column="3" Text="›" Foreground="#4f00b5" FontSize="18"
+                                 VerticalAlignment="Center" FontWeight="Bold"/>
+                    </Grid>
+                  </Border>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+      </StackPanel>
+
+    </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

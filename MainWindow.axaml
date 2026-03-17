@@ -1,0 +1,371 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:HardwareMonitor.ViewModels"
+        xmlns:views="using:HardwareMonitor.Views"
+        xmlns:conv="using:HardwareMonitor.Converters"
+        x:Class="HardwareMonitor.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Hardware Monitor"
+        Width="1200" Height="760"
+        MinWidth="900" MinHeight="600"
+        Background="#050010"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="36">
+
+  <Window.Resources>
+    <conv:ViewEqualsConverter x:Key="ViewEquals"/>
+    <conv:ViewStartsWithConverter x:Key="ViewStartsWith"/>
+    <conv:LoadToColorConverter x:Key="LoadToColor"/>
+    <conv:TempToColorConverter x:Key="TempToColor"/>
+    <conv:NavActiveConverter x:Key="NavActive"/>
+    <conv:IntervalActiveConverter x:Key="IntervalActive"/>
+  </Window.Resources>
+
+  <Window.Styles>
+    <!-- ═══ Solidigm-inspired card ═══ -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#160231"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="BorderBrush" Value="#2f006b"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="Border.card:pointerover">
+      <Setter Property="BorderBrush" Value="#4f00b5"/>
+    </Style>
+
+    <!-- Surface card (lighter) -->
+    <Style Selector="Border.surface">
+      <Setter Property="Background" Value="#0d001a"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="BorderBrush" Value="#1a0033"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- Sensor row -->
+    <Style Selector="Border.sensorRow">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Padding" Value="14,8"/>
+    </Style>
+    <Style Selector="Border.sensorRow:pointerover">
+      <Setter Property="Background" Value="#15ffffff"/>
+    </Style>
+
+    <!-- ═══ Nav button ═══ -->
+    <Style Selector="Button.navBtn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#a5a29d"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Padding" Value="18,12"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Button.navBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#2f006b"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+    <Style Selector="Button.navBtn:focus /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="#8d59cf"/>
+      <Setter Property="BorderThickness" Value="2"/>
+    </Style>
+
+    <Style Selector="Button.navActive">
+      <Setter Property="Background" Value="#4f00b5"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+    <Style Selector="Button.navActive /template/ ContentPresenter">
+      <Setter Property="Background" Value="#4f00b5"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+
+    <!-- ═══ Accent button ═══ -->
+    <Style Selector="Button.accentBtn">
+      <Setter Property="Background" Value="#4f00b5"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="Padding" Value="20,8"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.accentBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#2f006b"/>
+    </Style>
+    <Style Selector="Button.accentBtn:focus /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="#8d59cf"/>
+      <Setter Property="BorderThickness" Value="2"/>
+    </Style>
+
+    <!-- Interval button -->
+    <Style Selector="Button.intervalBtn">
+      <Setter Property="Background" Value="#160231"/>
+      <Setter Property="Foreground" Value="#a5a29d"/>
+      <Setter Property="Padding" Value="18,8"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="BorderBrush" Value="#2f006b"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.intervalBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#4f00b5"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+    <Style Selector="Button.intervalBtn:focus /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="#8d59cf"/>
+      <Setter Property="BorderThickness" Value="2"/>
+    </Style>
+
+    <!-- Back button (ghost) -->
+    <Style Selector="Button.ghostBtn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#00ffec"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FontSize" Value="14"/>
+    </Style>
+    <Style Selector="Button.ghostBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+    <Style Selector="Button.ghostBtn:focus /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="#8d59cf"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- Progress bars: purple accent, smooth animated transitions -->
+    <Style Selector="ProgressBar">
+      <Setter Property="Foreground" Value="#4f00b5"/>
+      <Setter Property="Background" Value="#0d001a"/>
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Value" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+        </Transitions>
+      </Setter>
+    </Style>
+
+    <!-- Separators -->
+    <Style Selector="Separator">
+      <Setter Property="Background" Value="#2f006b"/>
+      <Setter Property="Height" Value="1"/>
+    </Style>
+
+    <!-- CheckBox styling -->
+    <Style Selector="CheckBox">
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+
+    <!-- Window control buttons -->
+    <Style Selector="Button#MinBtn:pointerover /template/ ContentPresenter,
+                     Button#MaxBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#2f006b"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+    <Style Selector="Button#CloseBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#c42b1c"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="36,*">
+
+    <!-- ═══ Title Bar (full width) ═══ -->
+    <Border Grid.Row="0" Background="#160231" IsHitTestVisible="True" Name="TitleBar"
+            BorderBrush="#2f006b" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <!-- Brand -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="16,4,0,0" 
+                    HorizontalAlignment="Left" VerticalAlignment="Center">
+          <Border Width="3" Height="14" Background="#4f00b5"/>
+          <TextBlock Text="HW MONITOR" FontSize="12" Foreground="#ffffff" FontWeight="Bold" LetterSpacing="2" VerticalAlignment="Center"/>
+          <TextBlock Text="·" Foreground="#2f006b" FontSize="10" VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding StatusText}" Foreground="#7a7977" FontSize="10"
+                     TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+        </StackPanel>
+        <!-- Drag zone -->
+        <Border Grid.Column="1" Background="Transparent"/>
+        <!-- Window control buttons -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+          <Button Name="MinBtn" Background="Transparent" Foreground="#7a7977" Content="─"
+                  Width="46" Height="36" Padding="8,0" CornerRadius="0" BorderThickness="0"
+                  FontSize="12" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Cursor="Hand"
+                  AutomationProperties.Name="Minimize"/>
+          <Button Name="MaxBtn" Background="Transparent" Foreground="#7a7977" Content="□"
+                  Width="46" Height="36" Padding="8,0" CornerRadius="0" BorderThickness="0"
+                  FontSize="12" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Cursor="Hand"
+                  AutomationProperties.Name="Maximize"/>
+          <Button Name="CloseBtn" Background="Transparent" Foreground="#7a7977" Content="✕"
+                  Width="46" Height="36" Padding="8,0" CornerRadius="0" BorderThickness="0"
+                  FontSize="12" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Cursor="Hand"
+                  AutomationProperties.Name="Close"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ═══ Body: Sidebar + Content ═══ -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+
+      <!-- ═══ Sidebar ═══ -->
+      <Border Grid.Column="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,1,0"
+              Width="{Binding SidebarWidth}">
+        <Border.Transitions>
+          <Transitions>
+            <DoubleTransition Property="Width" Duration="0:0:0.2"/>
+          </Transitions>
+        </Border.Transitions>
+        <Grid RowDefinitions="Auto,*">
+        <!-- Collapse toggle -->
+        <Button Grid.Row="0" Classes="navBtn" Command="{Binding ToggleSidebarCommand}"
+                HorizontalAlignment="Stretch" Padding="16,10"
+                AutomationProperties.Name="Toggle sidebar">
+          <TextBlock Text="☰" FontSize="16" Foreground="#8d59cf" HorizontalAlignment="Center"/>
+        </Button>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,4,0,0">
+          <TextBlock Text="OVERVIEW" FontSize="10" Foreground="#7a7977" FontWeight="Bold"
+                     Margin="20,12,0,8" LetterSpacing="2"
+                     IsVisible="{Binding !IsSidebarCollapsed}"/>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToCommand}" CommandParameter="Dashboard"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=Dashboard}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=Dashboard|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="◎" FontSize="11" Foreground="#8d59cf" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="Dashboard" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToCommand}" CommandParameter="Monitor"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=Monitor}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=Monitor|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="⊞" FontSize="11" Foreground="#8d59cf" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="Monitor" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+
+          <TextBlock Text="HARDWARE" FontSize="10" Foreground="#7a7977" FontWeight="Bold"
+                     Margin="20,20,0,8" LetterSpacing="2"
+                     IsVisible="{Binding !IsSidebarCollapsed}"/>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToTypeCommand}" CommandParameter="Cpu"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailCpu}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailCpu|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="C" FontSize="11" Foreground="#00ffec" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="CPU" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToTypeCommand}" CommandParameter="Gpu"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailGpu}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailGpu|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="G" FontSize="11" Foreground="#00ffec" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="GPU" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToTypeCommand}" CommandParameter="Memory"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailMemory}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailMemory|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="M" FontSize="11" Foreground="#00ffec" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="Memory" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToTypeCommand}" CommandParameter="Storage"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailStorage}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailStorage|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="S" FontSize="11" Foreground="#00ffec" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="Storage" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToTypeCommand}" CommandParameter="Network"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailNetwork}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailNetwork|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="N" FontSize="11" Foreground="#00ffec" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="Network" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToTypeCommand}" CommandParameter="Motherboard"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailMotherboard}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=DetailMotherboard|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="B" FontSize="11" Foreground="#00ffec" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="Motherboard" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+
+          <TextBlock Text="SYSTEM" FontSize="10" Foreground="#7a7977" FontWeight="Bold"
+                     Margin="20,20,0,8" LetterSpacing="2"
+                     IsVisible="{Binding !IsSidebarCollapsed}"/>
+          <Button Classes="navBtn"
+                  Command="{Binding NavigateToCommand}" CommandParameter="Settings"
+                  Background="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=Settings}"
+                  Foreground="{Binding CurrentView, Converter={StaticResource NavActive}, ConverterParameter=Settings|fg}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="20" Height="20" Background="#2f006b" CornerRadius="4">
+                <TextBlock Text="⚙" FontSize="11" Foreground="#8d59cf" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <TextBlock Text="Settings" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsSidebarCollapsed}"/>
+            </StackPanel>
+          </Button>
+        </StackPanel>
+        </ScrollViewer>
+        </Grid>
+      </Border>
+
+      <!-- ═══ Content Area ═══ -->
+      <Border Grid.Column="1" Background="#050010">
+        <Panel>
+          <views:DashboardView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=Dashboard}"/>
+          <views:DetailView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=Detail}"/>
+          <views:SettingsView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=Settings}"/>
+
+          <!-- Type-specific detail views -->
+          <views:CpuDetailView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=DetailCpu}"/>
+          <views:GpuDetailView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=DetailGpu}"/>
+          <views:StorageDetailView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=DetailStorage}"/>
+          <views:MemoryDetailView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=DetailMemory}"/>
+          <views:NetworkDetailView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=DetailNetwork}"/>
+          <views:MotherboardDetailView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=DetailMotherboard}"/>
+          <views:MonitorView IsVisible="{Binding CurrentView, Converter={StaticResource ViewEquals}, ConverterParameter=Monitor}"/>
+        </Panel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

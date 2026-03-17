@@ -1,0 +1,193 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             xmlns:models="using:HardwareMonitor.Models"
+             xmlns:conv="using:HardwareMonitor.Converters"
+             x:Class="HardwareMonitor.Views.GpuDetailView"
+             x:DataType="vm:MainViewModel">
+
+  <UserControl.Resources>
+    <conv:LoadToColorConverter x:Key="LoadToColor"/>
+    <conv:TempToColorConverter x:Key="TempToColor"/>
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Button Classes="ghostBtn" Content="‹ Back" Grid.Column="0"
+                Command="{Binding NavigateToCommand}" CommandParameter="Dashboard"
+                VerticalAlignment="Center" Margin="0,0,16,0"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <TextBlock Text="GRAPHICS" Foreground="#8d59cf" FontSize="11" FontWeight="Bold" LetterSpacing="2" VerticalAlignment="Center"/>
+            <!-- Multi-GPU switcher -->
+            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding GpuHasMultiple}" VerticalAlignment="Center">
+              <Button Classes="ghostBtn" Content="◀" FontSize="10"
+                      Command="{Binding SwitchGpuCommand}" CommandParameter="prev"/>
+              <TextBlock Text="{Binding GpuSwitchLabel}" FontSize="11" Foreground="#a5a29d" VerticalAlignment="Center"/>
+              <Button Classes="ghostBtn" Content="▶" FontSize="10"
+                      Command="{Binding SwitchGpuCommand}" CommandParameter="next"/>
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Text="{Binding GpuDetailName}" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+        </StackPanel>
+        <!-- Quick stats -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="24" VerticalAlignment="Center">
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="TEMP" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding GpuDetailTemp}" FontSize="18" FontWeight="Bold"
+                       Foreground="{Binding GpuDetailTemp, Converter={StaticResource TempToColor}}" HorizontalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="POWER" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding GpuDetailPower}" FontSize="18" FontWeight="Bold" Foreground="#ffa42c" HorizontalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="CLOCK" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding GpuDetailClock}" FontSize="18" FontWeight="Bold" Foreground="#00ffec" HorizontalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="FAN" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding GpuDetailFan}" FontSize="18" FontWeight="Bold" Foreground="#a5a29d" HorizontalAlignment="Center"/>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,20,32,32" Spacing="24">
+
+        <!-- ═══ GPU Metrics Cards ═══ -->
+        <UniformGrid Columns="4" Rows="1">
+          <!-- Core Temp -->
+          <Border Classes="card" Margin="0,0,8,0" Padding="20,16">
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+              <TextBlock Text="CORE TEMP" FontSize="9" Foreground="#7a7977" FontWeight="Bold"
+                         LetterSpacing="1" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding GpuDetailTemp}" FontSize="28" FontWeight="Bold"
+                         Foreground="{Binding GpuDetailTemp, Converter={StaticResource TempToColor}}"
+                         HorizontalAlignment="Center"/>
+              <TextBlock FontSize="10" Foreground="#7a7977" HorizontalAlignment="Center">
+                <Run Text="Mem: "/>
+                <Run Text="{Binding GpuDetailMemJunction}"/>
+              </TextBlock>
+            </StackPanel>
+          </Border>
+
+          <!-- Power -->
+          <Border Classes="card" Margin="4,0" Padding="20,16">
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+              <TextBlock Text="POWER" FontSize="9" Foreground="#7a7977" FontWeight="Bold"
+                         LetterSpacing="1" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding GpuDetailPower}" FontSize="28" FontWeight="Bold"
+                         Foreground="#ffa42c" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding GpuDetailVoltage}" FontSize="10" Foreground="#7a7977" HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Clocks -->
+          <Border Classes="card" Margin="4,0" Padding="20,16">
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+              <TextBlock Text="CORE CLOCK" FontSize="9" Foreground="#7a7977" FontWeight="Bold"
+                         LetterSpacing="1" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding GpuDetailClock}" FontSize="28" FontWeight="Bold"
+                         Foreground="#00ffec" HorizontalAlignment="Center"/>
+              <TextBlock FontSize="10" Foreground="#7a7977" HorizontalAlignment="Center">
+                <Run Text="Mem: "/>
+                <Run Text="{Binding GpuDetailMemClock}"/>
+              </TextBlock>
+            </StackPanel>
+          </Border>
+
+          <!-- Fan -->
+          <Border Classes="card" Margin="8,0,0,0" Padding="20,16">
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+              <TextBlock Text="FAN" FontSize="9" Foreground="#7a7977" FontWeight="Bold"
+                         LetterSpacing="1" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding GpuDetailFan}" FontSize="28" FontWeight="Bold"
+                         Foreground="#a5a29d" HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+        </UniformGrid>
+
+        <!-- ═══ Load Bars ═══ -->
+        <StackPanel Spacing="10">
+          <TextBlock Text="UTILIZATION" FontSize="10" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="2"/>
+          <Border Classes="card" Padding="24,18">
+            <StackPanel Spacing="14">
+              <!-- GPU Core Load -->
+              <StackPanel Spacing="4">
+                <Grid ColumnDefinitions="120,*,Auto">
+                  <TextBlock Text="GPU Core" FontSize="12" Foreground="#a5a29d" VerticalAlignment="Center"/>
+                  <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding GpuDetailLoadValue}"
+                               Height="8" Foreground="{Binding GpuDetailLoadValue, Converter={StaticResource LoadToColor}}"
+                               Background="#0d001a" Margin="12,0"/>
+                  <TextBlock Grid.Column="2" Text="{Binding GpuDetailLoadValue, StringFormat='{}{0:F0}%'}"
+                             FontSize="12" FontWeight="SemiBold" Foreground="#ffffff" Width="45" TextAlignment="Right"/>
+                </Grid>
+              </StackPanel>
+              <!-- VRAM -->
+              <StackPanel Spacing="4">
+                <Grid ColumnDefinitions="120,*,Auto">
+                  <TextBlock Text="VRAM" FontSize="12" Foreground="#a5a29d" VerticalAlignment="Center"/>
+                  <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding GpuDetailMemValue}"
+                               Height="8" Foreground="#4f00b5" Background="#0d001a" Margin="12,0"/>
+                  <TextBlock Grid.Column="2" Text="{Binding GpuDetailVram}"
+                             FontSize="12" FontWeight="SemiBold" Foreground="#ffffff" Width="120" TextAlignment="Right"/>
+                </Grid>
+              </StackPanel>
+              <!-- Board Power -->
+              <StackPanel Spacing="4">
+                <Grid ColumnDefinitions="120,*,Auto">
+                  <TextBlock Text="Board Power" FontSize="12" Foreground="#a5a29d" VerticalAlignment="Center"/>
+                  <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding GpuDetailPowerPercent}"
+                               Height="8" Foreground="#ffa42c" Background="#0d001a" Margin="12,0"/>
+                  <TextBlock Grid.Column="2" Text="{Binding GpuDetailPowerPercent, StringFormat='{}{0:F0}%'}"
+                             FontSize="12" FontWeight="SemiBold" Foreground="#ffffff" Width="45" TextAlignment="Right"/>
+                </Grid>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- ═══ All Sensors Table ═══ -->
+        <StackPanel Spacing="10">
+          <TextBlock Text="ALL SENSORS" FontSize="10" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="2"/>
+          <Border Classes="surface" Padding="0">
+            <StackPanel>
+              <Border Background="#160231" Padding="16,10" BorderBrush="#2f006b" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="2*,*,*,*,*">
+                  <TextBlock Grid.Column="0" Text="SENSOR" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1"/>
+                  <TextBlock Grid.Column="1" Text="TYPE" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1"/>
+                  <TextBlock Grid.Column="2" Text="VALUE" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+                  <TextBlock Grid.Column="3" Text="MIN" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+                  <TextBlock Grid.Column="4" Text="MAX" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+                </Grid>
+              </Border>
+              <ItemsControl ItemsSource="{Binding SelectedSensors}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="models:SensorReading">
+                    <Border Classes="sensorRow" BorderBrush="#1a0033" BorderThickness="0,0,0,1">
+                      <Grid ColumnDefinitions="2*,*,*,*,*">
+                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="12" Foreground="#ffffff" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding SensorType}" FontSize="10" Foreground="#7a7977" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="{Binding FormattedValue}" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="#00ffec" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding FormattedMin}" FontSize="11" Foreground="#7b3fdb"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="4" Text="{Binding FormattedMax}" FontSize="11" Foreground="#ffa42c"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

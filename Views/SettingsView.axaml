@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             xmlns:conv="using:HardwareMonitor.Converters"
+             x:Class="HardwareMonitor.Views.SettingsView"
+             x:DataType="vm:MainViewModel">
+
+  <UserControl.Resources>
+    <conv:IntervalActiveConverter x:Key="IntervalActive"/>
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <StackPanel Spacing="2">
+        <TextBlock Text="SETTINGS" FontSize="11" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+        <TextBlock Text="Configuration" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+    <StackPanel Margin="32,20,32,32" Spacing="24" MaxWidth="560">
+
+      <!-- Monitoring Categories -->
+      <Border Classes="card" Padding="24">
+        <StackPanel Spacing="14">
+          <TextBlock Text="MONITORING CATEGORIES" FontSize="10" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+          <Separator/>
+          <CheckBox Content="CPU" IsChecked="{Binding CpuEnabled}"/>
+          <CheckBox Content="GPU" IsChecked="{Binding GpuEnabled}"/>
+          <CheckBox Content="Memory" IsChecked="{Binding MemoryEnabled}"/>
+          <CheckBox Content="Motherboard" IsChecked="{Binding MotherboardEnabled}"/>
+          <CheckBox Content="Storage" IsChecked="{Binding StorageEnabled}"/>
+          <CheckBox Content="Network" IsChecked="{Binding NetworkEnabled}"/>
+          <CheckBox Content="Battery" IsChecked="{Binding BatteryEnabled}"/>
+          <CheckBox Content="Controller" IsChecked="{Binding ControllerEnabled}"/>
+          <CheckBox Content="PSU" IsChecked="{Binding PsuEnabled}"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Update Interval -->
+      <Border Classes="card" Padding="24">
+        <StackPanel Spacing="14">
+          <TextBlock Text="UPDATE INTERVAL" FontSize="10" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+          <Separator/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="500ms" Command="{Binding SetIntervalCommand}" CommandParameter="500"
+                    Classes="intervalBtn"
+                    Background="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=500}"
+                    Foreground="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=500|fg}"/>
+            <Button Content="1s" Command="{Binding SetIntervalCommand}" CommandParameter="1000"
+                    Classes="intervalBtn"
+                    Background="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=1000}"
+                    Foreground="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=1000|fg}"/>
+            <Button Content="2s" Command="{Binding SetIntervalCommand}" CommandParameter="2000"
+                    Classes="intervalBtn"
+                    Background="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=2000}"
+                    Foreground="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=2000|fg}"/>
+            <Button Content="5s" Command="{Binding SetIntervalCommand}" CommandParameter="5000"
+                    Classes="intervalBtn"
+                    Background="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=5000}"
+                    Foreground="{Binding UpdateInterval, Converter={StaticResource IntervalActive}, ConverterParameter=5000|fg}"/>
+          </StackPanel>
+          <TextBlock Text="{Binding UpdateInterval, StringFormat='Current: {0}ms'}" Foreground="#7a7977" FontSize="11"/>
+        </StackPanel>
+      </Border>
+
+      <!-- About -->
+      <Border Classes="card" Padding="24">
+        <StackPanel Spacing="10">
+          <TextBlock Text="ABOUT" FontSize="10" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+          <Separator/>
+          <TextBlock Text="Hardware Monitor" FontSize="16" FontWeight="SemiBold" Foreground="#ffffff"/>
+          <TextBlock Text="Avalonia UI · LibreHardwareMonitorLib · Native AOT" Foreground="#7a7977" FontSize="12"/>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

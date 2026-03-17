@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="HardwareMonitor.Views.MonitorView"
+             x:DataType="vm:MainViewModel">
+
+  <UniformGrid Rows="2" Columns="2" Margin="8">
+
+    <!-- CPU / GPU Load -->
+    <Border Background="#0d001a" BorderBrush="#2f006b" BorderThickness="1" Margin="4">
+      <Grid RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16" Margin="12,8,12,0">
+          <TextBlock Text="UTILIZATION" FontSize="11" Foreground="#7a7977"
+                     FontWeight="Bold" LetterSpacing="2" VerticalAlignment="Center"/>
+          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Border Width="8" Height="8" CornerRadius="4" Background="#00ffec"/>
+            <TextBlock Text="CPU" FontSize="9" Foreground="#9a9a9a"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Border Width="8" Height="8" CornerRadius="4" Background="#8d59cf"/>
+            <TextBlock Text="GPU" FontSize="9" Foreground="#9a9a9a"/>
+          </StackPanel>
+        </StackPanel>
+        <lvc:CartesianChart Grid.Row="1"
+                            Series="{Binding LoadSeries}"
+                            XAxes="{Binding ChartXAxes}"
+                            YAxes="{Binding LoadYAxes}"
+                            DrawMargin="{Binding ChartMargin}"
+                            TooltipPosition="Top"
+                            ZoomMode="None"
+                            AnimationsSpeed="00:00:00"
+                            LegendPosition="Hidden"/>
+      </Grid>
+    </Border>
+
+    <!-- Temperature -->
+    <Border Background="#0d001a" BorderBrush="#2f006b" BorderThickness="1" Margin="4">
+      <Grid RowDefinitions="Auto,*">
+        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="12,8,12,0">
+          <TextBlock Text="TEMPERATURE" FontSize="11" Foreground="#7a7977"
+                     FontWeight="Bold" LetterSpacing="2" VerticalAlignment="Center" Margin="0,0,12,2"/>
+          <ItemsControl ItemsSource="{Binding TempLegendItems}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,0,8,2" VerticalAlignment="Center">
+                  <Border Width="8" Height="8" CornerRadius="4">
+                    <Border.Background>
+                      <SolidColorBrush Color="{Binding Color}"/>
+                    </Border.Background>
+                  </Border>
+                  <TextBlock Text="{Binding Label}" FontSize="9" Foreground="#9a9a9a" VerticalAlignment="Center"/>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </WrapPanel>
+        <lvc:CartesianChart Grid.Row="1"
+                            Series="{Binding TempSeries}"
+                            XAxes="{Binding ChartXAxes}"
+                            YAxes="{Binding TempYAxes}"
+                            DrawMargin="{Binding ChartMargin}"
+                            TooltipPosition="Top"
+                            ZoomMode="None"
+                            AnimationsSpeed="00:00:00"
+                            LegendPosition="Hidden"/>
+      </Grid>
+    </Border>
+
+    <!-- Power -->
+    <Border Background="#0d001a" BorderBrush="#2f006b" BorderThickness="1" Margin="4">
+      <Grid RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16" Margin="12,8,12,0">
+          <TextBlock Text="POWER" FontSize="11" Foreground="#7a7977"
+                     FontWeight="Bold" LetterSpacing="2" VerticalAlignment="Center"/>
+          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Border Width="8" Height="8" CornerRadius="4" Background="#00ffec"/>
+            <TextBlock Text="CPU" FontSize="9" Foreground="#9a9a9a"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Border Width="8" Height="8" CornerRadius="4" Background="#8d59cf"/>
+            <TextBlock Text="GPU" FontSize="9" Foreground="#9a9a9a"/>
+          </StackPanel>
+        </StackPanel>
+        <lvc:CartesianChart Grid.Row="1"
+                            Series="{Binding PowerSeries}"
+                            XAxes="{Binding ChartXAxes}"
+                            YAxes="{Binding PowerYAxes}"
+                            DrawMargin="{Binding ChartMargin}"
+                            TooltipPosition="Top"
+                            ZoomMode="None"
+                            AnimationsSpeed="00:00:00"
+                            LegendPosition="Hidden"/>
+      </Grid>
+    </Border>
+
+    <!-- Fan Speed -->
+    <Border Background="#0d001a" BorderBrush="#2f006b" BorderThickness="1" Margin="4">
+      <Grid RowDefinitions="Auto,*">
+        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="12,8,12,0">
+          <TextBlock Text="FAN SPEED" FontSize="11" Foreground="#7a7977"
+                     FontWeight="Bold" LetterSpacing="2" VerticalAlignment="Center" Margin="0,0,12,2"/>
+          <ItemsControl ItemsSource="{Binding FanLegendItems}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,0,8,2" VerticalAlignment="Center">
+                  <Border Width="8" Height="8" CornerRadius="4">
+                    <Border.Background>
+                      <SolidColorBrush Color="{Binding Color}"/>
+                    </Border.Background>
+                  </Border>
+                  <TextBlock Text="{Binding Label}" FontSize="9" Foreground="#9a9a9a" VerticalAlignment="Center"/>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </WrapPanel>
+        <lvc:CartesianChart Grid.Row="1"
+                            Series="{Binding FanSeries}"
+                            XAxes="{Binding ChartXAxes}"
+                            YAxes="{Binding FanYAxes}"
+                            DrawMargin="{Binding ChartMargin}"
+                            TooltipPosition="Top"
+                            ZoomMode="None"
+                            AnimationsSpeed="00:00:00"
+                            LegendPosition="Hidden"/>
+      </Grid>
+    </Border>
+
+  </UniformGrid>
+
+</UserControl>

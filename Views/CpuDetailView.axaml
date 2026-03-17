@@ -1,0 +1,133 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             xmlns:models="using:HardwareMonitor.Models"
+             xmlns:conv="using:HardwareMonitor.Converters"
+             x:Class="HardwareMonitor.Views.CpuDetailView"
+             x:DataType="vm:MainViewModel">
+
+  <UserControl.Resources>
+    <conv:LoadToColorConverter x:Key="LoadToColor"/>
+    <conv:TempToColorConverter x:Key="TempToColor"/>
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Button Classes="ghostBtn" Content="‹ Back" Grid.Column="0"
+                Command="{Binding NavigateToCommand}" CommandParameter="Dashboard"
+                VerticalAlignment="Center" Margin="0,0,16,0"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <TextBlock Text="PROCESSOR" Foreground="#8d59cf" FontSize="11" FontWeight="Bold" LetterSpacing="2" VerticalAlignment="Center"/>
+            <!-- Multi-CPU switcher -->
+            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding CpuHasMultiple}" VerticalAlignment="Center">
+              <Button Classes="ghostBtn" Content="◀" FontSize="10"
+                      Command="{Binding SwitchCpuCommand}" CommandParameter="prev"/>
+              <TextBlock Text="{Binding CpuSwitchLabel}" FontSize="11" Foreground="#a5a29d" VerticalAlignment="Center"/>
+              <Button Classes="ghostBtn" Content="▶" FontSize="10"
+                      Command="{Binding SwitchCpuCommand}" CommandParameter="next"/>
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Text="{Binding CpuDetailName}" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+        </StackPanel>
+
+        <!-- Quick stats -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="24" VerticalAlignment="Center">
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="TEMP" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding CpuDetailTemp}" FontSize="18" FontWeight="Bold"
+                       Foreground="{Binding CpuDetailTemp, Converter={StaticResource TempToColor}}" HorizontalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="POWER" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding CpuDetailPower}" FontSize="18" FontWeight="Bold" Foreground="#ffa42c" HorizontalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="CLOCK" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding CpuDetailClock}" FontSize="18" FontWeight="Bold" Foreground="#00ffec" HorizontalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Text="LOAD" FontSize="9" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding CpuDetailLoad}" FontSize="18" FontWeight="Bold" Foreground="#8d59cf" HorizontalAlignment="Center"/>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,20,32,32" Spacing="24">
+
+        <!-- ═══ Per-Core Load Grid ═══ -->
+        <StackPanel Spacing="10">
+          <TextBlock Text="CORE UTILIZATION" FontSize="10" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="2"/>
+          <Border Classes="card" Padding="20">
+            <ItemsControl ItemsSource="{Binding CpuCoreLoads}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CoreLoadItem">
+                  <Border Width="118" Margin="3,3" Padding="10,8" Background="#0d001a" BorderBrush="#1a0033" BorderThickness="1">
+                    <StackPanel Spacing="6">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding Name}" FontSize="11" Foreground="#a5a29d" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" Text="{Binding LoadText}" FontSize="11" FontWeight="Bold"
+                                   Foreground="{Binding Load, Converter={StaticResource LoadToColor}}"/>
+                      </Grid>
+                      <ProgressBar Minimum="0" Maximum="100" Value="{Binding Load}" Height="3"
+                                   MinWidth="0" MaxWidth="Infinity"
+                                   Foreground="{Binding Load, Converter={StaticResource LoadToColor}}"
+                                   Background="#160231"/>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+
+        <!-- ═══ All Sensors Table ═══ -->
+        <StackPanel Spacing="10">
+          <TextBlock Text="ALL SENSORS" FontSize="10" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="2"/>
+          <Border Classes="surface" Padding="0">
+            <!-- Table Header -->
+            <StackPanel>
+              <Border Background="#160231" Padding="16,10" BorderBrush="#2f006b" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="2*,*,*,*,*">
+                  <TextBlock Grid.Column="0" Text="SENSOR" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1"/>
+                  <TextBlock Grid.Column="1" Text="TYPE" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1"/>
+                  <TextBlock Grid.Column="2" Text="VALUE" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+                  <TextBlock Grid.Column="3" Text="MIN" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+                  <TextBlock Grid.Column="4" Text="MAX" FontWeight="Bold" FontSize="10" Foreground="#7a7977" LetterSpacing="1" HorizontalAlignment="Right"/>
+                </Grid>
+              </Border>
+              <ItemsControl ItemsSource="{Binding SelectedSensors}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="models:SensorReading">
+                    <Border Classes="sensorRow" BorderBrush="#1a0033" BorderThickness="0,0,0,1">
+                      <Grid ColumnDefinitions="2*,*,*,*,*">
+                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="12" Foreground="#ffffff" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding SensorType}" FontSize="10" Foreground="#7a7977" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="{Binding FormattedValue}" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="#00ffec" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding FormattedMin}" FontSize="11" Foreground="#7b3fdb"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="4" Text="{Binding FormattedMax}" FontSize="11" Foreground="#ffa42c"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

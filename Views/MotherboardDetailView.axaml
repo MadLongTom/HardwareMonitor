@@ -1,0 +1,138 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             xmlns:conv="using:HardwareMonitor.Converters"
+             x:Class="HardwareMonitor.Views.MotherboardDetailView"
+             x:DataType="vm:MainViewModel">
+
+  <UserControl.Resources>
+    <conv:TempToColorConverter x:Key="TempToColor"/>
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <Grid ColumnDefinitions="Auto,*">
+        <Button Classes="ghostBtn" Content="‹ Back" Grid.Column="0"
+                Command="{Binding NavigateToCommand}" CommandParameter="Dashboard"
+                VerticalAlignment="Center" Margin="0,0,16,0"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock Text="Motherboard" FontSize="11" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+          <TextBlock Text="{Binding SelectedHardwareName}" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,20,32,32" Spacing="28">
+
+        <!-- ═══ Empty State ═══ -->
+        <Border IsVisible="{Binding MbShowEmpty}" Padding="40" HorizontalAlignment="Center">
+          <StackPanel Spacing="8" HorizontalAlignment="Center">
+            <TextBlock Text="Waiting for sensor data…" FontSize="16" Foreground="#7a7977"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="SuperIO chip may take a moment to initialize." FontSize="12" Foreground="#6b6a68"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+
+        <!-- ═══ Fan Control Section ═══ -->
+        <StackPanel Spacing="12" IsVisible="{Binding MbHasData}">
+          <TextBlock Text="FAN CONTROL" FontSize="11" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+          <ItemsControl ItemsSource="{Binding MbFanItems}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MbFanItem">
+                <Border Classes="card" Width="230" Margin="0,0,12,12" Padding="20,16">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="#ffffff"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding RpmText}" FontSize="28" FontWeight="Bold"
+                                   Foreground="#ffffff"/>
+                        <TextBlock Text="RPM" FontSize="10" Foreground="#7a7977"/>
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Spacing="2">
+                        <TextBlock Text="{Binding DutyText}" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="#00ffec" HorizontalAlignment="Right"/>
+                        <TextBlock Text="duty" FontSize="10" Foreground="#7a7977" HorizontalAlignment="Right"/>
+                      </StackPanel>
+                    </Grid>
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding DutyValue}" Height="4" MinWidth="0"
+                                 Foreground="#00ffec" Background="#160231"/>
+                    <Grid ColumnDefinitions="*,*">
+                      <TextBlock Text="{Binding MinRpm}" FontSize="10" Foreground="#7a7977"/>
+                      <TextBlock Grid.Column="1" Text="{Binding MaxRpm}" FontSize="10" Foreground="#7a7977"
+                                 HorizontalAlignment="Right"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <!-- ═══ Temperature Section ═══ -->
+        <StackPanel Spacing="12" IsVisible="{Binding MbHasData}">
+          <TextBlock Text="TEMPERATURES" FontSize="11" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+          <ItemsControl ItemsSource="{Binding MbTempItems}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MbTempItem">
+                <Border Classes="card" Width="180" Margin="0,0,12,12" Padding="20,16">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#7a7977" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding ValueText}" FontSize="28" FontWeight="Bold"
+                               Foreground="{Binding ValueText, Converter={StaticResource TempToColor}}"/>
+                    <Grid ColumnDefinitions="*,*">
+                      <TextBlock Text="{Binding MinText}" FontSize="10" Foreground="#6b6a68"/>
+                      <TextBlock Grid.Column="1" Text="{Binding MaxText}" FontSize="10" Foreground="#6b6a68"
+                                 HorizontalAlignment="Right"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <!-- ═══ Voltage Section ═══ -->
+        <StackPanel Spacing="12" IsVisible="{Binding MbHasData}">
+          <TextBlock Text="VOLTAGES" FontSize="11" Foreground="#8d59cf" FontWeight="Bold" LetterSpacing="2"/>
+          <ItemsControl ItemsSource="{Binding MbVoltageItems}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MbVoltageItem">
+                <Border Classes="card" Width="160" Margin="0,0,12,12" Padding="20,16">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#7a7977" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding ValueText}" FontSize="24" FontWeight="Bold" Foreground="#ffa42c"/>
+                    <Grid ColumnDefinitions="*,*">
+                      <TextBlock Text="{Binding MinText}" FontSize="10" Foreground="#6b6a68"/>
+                      <TextBlock Grid.Column="1" Text="{Binding MaxText}" FontSize="10" Foreground="#6b6a68"
+                                 HorizontalAlignment="Right"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

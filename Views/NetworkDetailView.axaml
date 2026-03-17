@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HardwareMonitor.ViewModels"
+             x:Class="HardwareMonitor.Views.NetworkDetailView"
+             x:DataType="vm:MainViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#0d001a" BorderBrush="#2f006b" BorderThickness="0,0,0,1" Padding="32,20">
+      <Grid ColumnDefinitions="Auto,*">
+        <Button Classes="ghostBtn" Content="‹ Back" Grid.Column="0"
+                Command="{Binding NavigateToCommand}" CommandParameter="Dashboard"
+                VerticalAlignment="Center" Margin="0,0,16,0"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock Text="NETWORK" Foreground="#8d59cf" FontSize="11" FontWeight="Bold" LetterSpacing="2"/>
+          <TextBlock Text="Adapters" FontSize="24" FontWeight="Bold" Foreground="#ffffff"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,20,32,32" Spacing="12">
+
+        <ItemsControl ItemsSource="{Binding NetworkItems}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NetworkItem">
+              <Border Classes="card" Margin="0,0,0,8" Padding="24,16">
+                <Grid RowDefinitions="Auto,Auto">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" Foreground="#ffffff"
+                               TextTrimming="CharacterEllipsis"/>
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="32" Margin="0,10,0,0">
+                    <!-- Download Speed -->
+                    <StackPanel HorizontalAlignment="Center" Spacing="2">
+                      <TextBlock Text="↓ DOWN" FontSize="8" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1"/>
+                      <TextBlock Text="{Binding DownSpeed}" FontSize="16" FontWeight="Bold" Foreground="#00ffec"/>
+                      <TextBlock Text="{Binding TotalDown}" FontSize="10" Foreground="#7a7977"/>
+                    </StackPanel>
+                    <!-- Upload Speed -->
+                    <StackPanel HorizontalAlignment="Center" Spacing="2">
+                      <TextBlock Text="↑ UP" FontSize="8" Foreground="#7a7977" FontWeight="Bold" LetterSpacing="1"/>
+                      <TextBlock Text="{Binding UpSpeed}" FontSize="16" FontWeight="Bold" Foreground="#ffa42c"/>
+                      <TextBlock Text="{Binding TotalUp}" FontSize="10" Foreground="#7a7977"/>
+                    </StackPanel>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>
