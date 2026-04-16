@@ -60,13 +60,28 @@
               <DataTemplate x:DataType="vm:DimmItem">
                 <Border Classes="card" Margin="0,0,0,8" Padding="24,16">
                   <Grid ColumnDefinitions="*,Auto">
-                    <StackPanel Spacing="4">
+                    <StackPanel Spacing="6">
+                      <!-- DIMM name (manufacturer - part number) -->
                       <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" Foreground="#ffffff"
                                  TextTrimming="CharacterEllipsis"/>
+
+                      <!-- Speed & Type row -->
+                      <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock FontSize="12" Foreground="#00ffec" FontWeight="SemiBold"
+                                   Text="{Binding SpeedText}"/>
+                        <TextBlock FontSize="12" Foreground="#ffa42c" FontWeight="SemiBold"
+                                   Text="{Binding TimingsText}"/>
+                      </StackPanel>
+
+                      <!-- Details row -->
                       <StackPanel Orientation="Horizontal" Spacing="16">
                         <TextBlock FontSize="11" Foreground="#7a7977">
                           <Run Text="Capacity: "/>
                           <Run Text="{Binding Capacity}" Foreground="#a5a29d"/>
+                        </TextBlock>
+                        <TextBlock FontSize="11" Foreground="#7a7977">
+                          <Run Text="Voltage: "/>
+                          <Run Text="{Binding Voltage}" Foreground="#a5a29d"/>
                         </TextBlock>
                         <TextBlock FontSize="11" Foreground="#7a7977">
                           <Run Text="Latency: "/>
@@ -74,7 +89,9 @@
                         </TextBlock>
                       </StackPanel>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+
+                    <!-- Temperature -->
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                       <TextBlock Text="TEMP" FontSize="8" Foreground="#7a7977" FontWeight="Bold"
                                  LetterSpacing="1" HorizontalAlignment="Center"/>
                       <TextBlock Text="{Binding Temp}" FontSize="20" FontWeight="Bold"

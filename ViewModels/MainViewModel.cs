@@ -123,6 +123,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _isSidebarCollapsed;
     [ObservableProperty] private double _sidebarWidth = 240;
 
+    // ═══ System Tray & Auto-Start ═══
+    [ObservableProperty] private bool _autoStartEnabled;
+    [ObservableProperty] private bool _minimizeToTray = true;
+    [ObservableProperty] private bool _closeToTray = true;
+    [ObservableProperty] private bool _startMinimized;
+    [ObservableProperty] private string _trayIconMode = "CpuTemp";
+
+    public static string[] TrayIconModeOptions { get; } = ["AppIcon", "CpuTemp", "GpuTemp", "CpuLoad", "GpuLoad"];
+
     // Monitor page: time-series chart data
     private const int MaxHistory = 120; // 2 minutes at 1s interval
     private const double EmaAlpha = 0.3; // EMA smoothing factor (lower = smoother)
@@ -201,14 +210,59 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
+            // Load persisted settings
+            LoadFromSettings();
+
             _service.Start();
             StatusText = "Monitoring active";
+
             _timer = new Timer(OnTimerTick, null, 0, UpdateInterval);
         }
         catch (Exception ex)
         {
             StatusText = $"Error: {ex.Message}";
         }
+    }
+
+    private void LoadFromSettings()
+    {
+        var s = App.Settings;
+        AutoStartEnabled = s.AutoStart;
+        MinimizeToTray = s.MinimizeToTray;
+        CloseToTray = s.CloseToTray;
+        StartMinimized = s.StartMinimized;
+        TrayIconMode = s.TrayIconDisplay.ToString();
+        UpdateInterval = s.UpdateInterval;
+        CpuEnabled = s.CpuEnabled;
+        GpuEnabled = s.GpuEnabled;
+        MemoryEnabled = s.MemoryEnabled;
+        MotherboardEnabled = s.MotherboardEnabled;
+        StorageEnabled = s.StorageEnabled;
+        NetworkEnabled = s.NetworkEnabled;
+        BatteryEnabled = s.BatteryEnabled;
+        ControllerEnabled = s.ControllerEnabled;
+        PsuEnabled = s.PsuEnabled;
+    }
+
+    public void SaveToSettings()
+    {
+        var s = App.Settings;
+        s.AutoStart = AutoStartEnabled;
+        s.MinimizeToTray = MinimizeToTray;
+        s.CloseToTray = CloseToTray;
+        s.StartMinimized = StartMinimized;
+        s.TrayIconDisplay = Enum.TryParse<Services.TrayIconMode>(TrayIconMode, out var mode) ? mode : Services.TrayIconMode.CpuTemp;
+        s.UpdateInterval = UpdateInterval;
+        s.CpuEnabled = CpuEnabled;
+        s.GpuEnabled = GpuEnabled;
+        s.MemoryEnabled = MemoryEnabled;
+        s.MotherboardEnabled = MotherboardEnabled;
+        s.StorageEnabled = StorageEnabled;
+        s.NetworkEnabled = NetworkEnabled;
+        s.BatteryEnabled = BatteryEnabled;
+        s.ControllerEnabled = ControllerEnabled;
+        s.PsuEnabled = PsuEnabled;
+        s.Save();
     }
 
     private void OnTimerTick(object? state)
@@ -267,6 +321,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
                 // Update monitor chart history
                 UpdateMonitorHistory(summary, tree);
+
+                // Update tray icon with selected sensor value
+                UpdateTrayIcon(summary);
 
                 int totalSensors = tree.Sum(CountSensors);
                 StatusText = $"{DateTime.Now:HH:mm:ss}  ·  {HardwareTree.Count} devices  ·  {totalSensors} sensors";
@@ -466,6 +523,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         return $"{gb:F0} GB";
     }
 
+    private SmbiosMemoryInfo[]? _smbiosMemInfo;
+
     private void UpdateMemoryDetail(List<HardwareNode> tree)
     {
         var memNodes = tree.Where(n => n.HardwareType == "Memory").ToList();
@@ -480,22 +539,113 @@ public partial class MainViewModel : ObservableObject, IDisposable
             MemDetailLoad = load?.Value ?? 0;
         }
 
+        // Get SMBIOS info once (cached)
+        _smbiosMemInfo ??= _service.GetSmbiosMemoryInfo();
+
         DimmItems.Clear();
         var dimms = memNodes.Where(n => n.Identifier.Contains("/dimm/")).ToList();
-        foreach (var d in dimms)
+        for (int i = 0; i < dimms.Count; i++)
         {
+            var d = dimms[i];
+
+            // SPD sensors
             var temp = d.Sensors.FirstOrDefault(s => s.SensorType == "Temperature" && s.Name.Contains("DIMM"));
             var cap = d.Sensors.FirstOrDefault(s => s.SensorType == "Data" && s.Name == "Capacity");
-            var cl = d.Sensors.FirstOrDefault(s => s.SensorType == "Timing" && s.Name.Contains("CAS"));
+
+            // SPD timing sensors - prefer XMP/EXPO profile over JEDEC base
+            var allTimings = d.Sensors.Where(s => s.SensorType == "Timing").ToList();
+            SensorReading? Pref(string key) =>
+                allTimings.FirstOrDefault(s => s.Name.Contains(key) && (s.Name.Contains("XMP") || s.Name.Contains("EXPO")))
+                ?? allTimings.FirstOrDefault(s => s.Name.Contains(key));
+
+            var tCKmin = Pref("tCKAVGmin");
+            var tAA = Pref("tAA");
+            var tRCD = Pref("tRCD");
+            var tRP = Pref("tRP");
+            var tRAS = Pref("tRAS");
+            var tRC = Pref("tRC");
+
+            // Convert ns timings to clock cycles using tCKmin
+            float tCK = tCKmin?.Value ?? 0;
+            int clCycles = NsToCycles(tAA?.Value, tCK);
+            int rcdCycles = NsToCycles(tRCD?.Value, tCK);
+            int rpCycles = NsToCycles(tRP?.Value, tCK);
+            int rasCycles = NsToCycles(tRAS?.Value, tCK);
+            int rcCycles = NsToCycles(tRC?.Value, tCK);
+
+            // Derive speed from tCKmin: clock = 1000/tCK MHz, DDR rate = 2x
+            int clockMHz = tCK > 0 ? (int)Math.Round(1000.0 / tCK) : 0;
+            int ddrRate = clockMHz * 2;
+
+            // Match SMBIOS data by index
+            var smbios = i < _smbiosMemInfo.Length ? _smbiosMemInfo[i] : null;
+            string memType = smbios?.MemoryType ?? "";
+            // Normalize memory type display
+            string memTypeShort = memType switch
+            {
+                "DDR5" or "DDR5_SDRAM" => "DDR5",
+                "DDR4" or "DDR4_SDRAM" => "DDR4",
+                "DDR3" or "DDR3_SDRAM" => "DDR3",
+                "LPDDR5" or "LPDDR5_SDRAM" => "LPDDR5",
+                "LPDDR4" or "LPDDR4X_SDRAM" or "LPDDR4_SDRAM" => "LPDDR4",
+                _ when memType.Contains("DDR5") => "DDR5",
+                _ when memType.Contains("DDR4") => "DDR4",
+                _ when memType.Contains("DDR3") => "DDR3",
+                _ => ddrRate > 0 ? "DDR" : ""
+            };
+
+            // Use SMBIOS ConfiguredSpeed as primary DDR rate (actual running speed)
+            int actualMTs = smbios?.ConfiguredSpeedMTs > 0 ? smbios.ConfiguredSpeedMTs : ddrRate;
+            int displayRate = actualMTs > 0 ? actualMTs : ddrRate;
+            int displayClockMHz = displayRate / 2;
+
+            // Speed text - SMBIOS speed as primary
+            string speedText = displayRate > 0
+                ? $"{memTypeShort}-{displayRate} ({displayClockMHz} MHz)"
+                : "";
+
+            // Timings text (clock cycles)
+            string timingsText = clCycles > 0
+                ? $"CL{clCycles}-{rcdCycles}-{rpCycles}-{rasCycles}"
+                : "—";
+
+            // CAS latency shorthand
+            string clText = clCycles > 0 ? $"CL{clCycles}" : "—";
+
+            // Voltage - prefer XMP/EXPO profile voltage if available
+            var profileVoltage = d.Sensors.FirstOrDefault(s => s.SensorType == "Voltage" &&
+                (s.Name.Contains("XMP") || s.Name.Contains("EXPO")));
+            string voltageText = profileVoltage?.Value.HasValue == true
+                ? $"{profileVoltage.Value:F2} V"
+                : smbios?.ConfiguredVoltageMV > 0
+                    ? $"{smbios.ConfiguredVoltageMV / 1000.0:F2} V"
+                    : "—";
 
             DimmItems.Add(new DimmItem
             {
                 Name = d.Name,
                 Temp = temp?.Value.HasValue == true ? $"{temp.Value:F1}°C" : "—",
                 Capacity = cap?.Value.HasValue == true ? $"{cap.Value:F0} GB" : "—",
-                CasLatency = cl?.Value.HasValue == true ? $"CL{cl.Value:F0}" : "—"
+                CasLatency = clText,
+                MemoryType = memTypeShort,
+                SpeedText = speedText,
+                TimingsText = timingsText,
+                Voltage = voltageText,
+                Manufacturer = smbios?.Manufacturer?.Trim() ?? "",
+                PartNumber = smbios?.PartNumber?.Trim() ?? ""
             });
         }
+    }
+
+    private static int NsToCycles(float? timingNs, float tCKNs)
+    {
+        if (timingNs is null || timingNs <= 0 || tCKNs <= 0) return 0;
+        double ratio = (double)timingNs.Value / (double)tCKNs;
+        int rounded = (int)Math.Round(ratio);
+        // SPD stores timings as integer picoseconds, causing rounding error up to ~0.08
+        // (e.g. DDR5-6000: tCK=333ps, tAA=9333ps → 9333/333=28.018, not 28.0)
+        // Snap to nearest integer within tolerance; otherwise ceiling per JEDEC spec
+        return Math.Abs(ratio - rounded) < 0.1 ? rounded : (int)Math.Ceiling(ratio);
     }
 
     private void UpdateNetworkDetail(List<HardwareNode> tree)
@@ -766,6 +916,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnUpdateIntervalChanged(int value) => _timer?.Change(0, value);
 
+    partial void OnAutoStartEnabledChanged(bool value) => AutoStartService.SetEnabled(value);
+    partial void OnMinimizeToTrayChanged(bool value) => App.Settings.MinimizeToTray = value;
+    partial void OnCloseToTrayChanged(bool value) => App.Settings.CloseToTray = value;
+    partial void OnStartMinimizedChanged(bool value) => App.Settings.StartMinimized = value;
+
+    [RelayCommand]
+    private void SetTrayIconMode(string mode)
+    {
+        TrayIconMode = mode;
+    }
+
     partial void OnCpuEnabledChanged(bool value) => _service.SetEnabled("Cpu", value);
     partial void OnGpuEnabledChanged(bool value) => _service.SetEnabled("Gpu", value);
     partial void OnMemoryEnabledChanged(bool value) => _service.SetEnabled("Memory", value);
@@ -912,15 +1073,34 @@ public partial class MainViewModel : ObservableObject, IDisposable
             col.RemoveAt(0);
     }
 
+    private void UpdateTrayIcon(DashboardSummary summary)
+    {
+        if (!Enum.TryParse<Services.TrayIconMode>(TrayIconMode, out var mode))
+            mode = Services.TrayIconMode.CpuTemp;
+
+        float? value = mode switch
+        {
+            Services.TrayIconMode.CpuTemp => summary.CpuTemp,
+            Services.TrayIconMode.GpuTemp => summary.GpuTemp,
+            Services.TrayIconMode.CpuLoad => summary.CpuLoad,
+            Services.TrayIconMode.GpuLoad => summary.GpuLoad,
+            _ => null,
+        };
+
+        App.TrayService.UpdateIcon(mode, value);
+    }
+
     public void Dispose()
     {
         if (!_disposed)
         {
             _disposed = true;
+            SaveToSettings();
             _timer?.Dispose();
             _service.Dispose();
         }
     }
+
 }
 
 // Per-core load item for CPU detail
@@ -968,6 +1148,12 @@ public class DimmItem
     public string Temp { get; set; } = "—";
     public string Capacity { get; set; } = "—";
     public string CasLatency { get; set; } = "—";
+    public string MemoryType { get; set; } = "";     // "DDR5"
+    public string SpeedText { get; set; } = "";       // "DDR5-6000 @ 3000 MHz"
+    public string TimingsText { get; set; } = "";     // "CL28-35-35-76"
+    public string Voltage { get; set; } = "—";        // "1.35 V"
+    public string Manufacturer { get; set; } = "";    // "Asgard"
+    public string PartNumber { get; set; } = "";      // "VAM5UH60C28BG-CBRBWA"
 }
 
 // Motherboard fan item (paired control + speed)

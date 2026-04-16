@@ -30,7 +30,10 @@ public class HardwareMonitorService : IDisposable
         };
     }
 
-    public void Start() => _computer.Open();
+    public void Start()
+    {
+        _computer.Open();
+    }
 
     public void SetEnabled(string category, bool enabled)
     {
@@ -212,6 +215,36 @@ public class HardwareMonitorService : IDisposable
 
     public void Stop() => _computer.Close();
 
+    // ═══════════════════════════════════════════════
+    // SMBIOS Memory Info
+    // ═══════════════════════════════════════════════
+
+    private SMBios? _smbios;
+
+    /// <summary>
+    /// Get SMBIOS memory device info for all installed DIMMs.
+    /// </summary>
+    public SmbiosMemoryInfo[] GetSmbiosMemoryInfo()
+    {
+        _smbios ??= new SMBios();
+        if (_smbios.MemoryDevices is null) return [];
+
+        return _smbios.MemoryDevices
+            .Where(d => d.Size > 0) // skip empty slots
+            .Select(d => new SmbiosMemoryInfo
+            {
+                DeviceLocator = d.DeviceLocator,
+                Manufacturer = d.ManufacturerName,
+                PartNumber = d.PartNumber,
+                SizeMB = d.Size,
+                SpeedMTs = d.Speed,
+                ConfiguredSpeedMTs = d.ConfiguredSpeed,
+                ConfiguredVoltageMV = d.ConfiguredVoltage,
+                MemoryType = d.Type.ToString()
+            })
+            .ToArray();
+    }
+
     public void Dispose()
     {
         if (!_disposed)
@@ -220,6 +253,18 @@ public class HardwareMonitorService : IDisposable
             Stop();
         }
     }
+}
+
+public class SmbiosMemoryInfo
+{
+    public string DeviceLocator { get; set; } = "";
+    public string Manufacturer { get; set; } = "";
+    public string PartNumber { get; set; } = "";
+    public uint SizeMB { get; set; }
+    public ushort SpeedMTs { get; set; }        // Max rated speed (MT/s)
+    public ushort ConfiguredSpeedMTs { get; set; } // Current running speed (MT/s)
+    public ushort ConfiguredVoltageMV { get; set; }
+    public string MemoryType { get; set; } = "";
 }
 
 public class DashboardSummary
