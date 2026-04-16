@@ -2,6 +2,15 @@
 #ifndef MyAppVersion
   #define MyAppVersion "0.0.0"
 #endif
+#ifndef DistDir
+  #define DistDir "dist"
+#endif
+#ifndef OutputName
+  #define OutputName "HardwareMonitor-setup"
+#endif
+#ifndef ArchAllowed
+  #define ArchAllowed "x64compatible"
+#endif
 #define MyAppExeName "HardwareMonitor.exe"
 
 [Setup]
@@ -11,17 +20,17 @@ AppVersion={#MyAppVersion}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=.
-OutputBaseFilename=HardwareMonitor-windows-x64-setup
+OutputBaseFilename={#OutputName}
 Compression=lzma2
 SolidCompression=yes
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+ArchitecturesAllowed={#ArchAllowed}
+ArchitecturesInstallIn64BitMode={#ArchAllowed}
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\{#MyAppExeName}
 WizardStyle=modern
 
 [Files]
-Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "{#DistDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

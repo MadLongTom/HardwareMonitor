@@ -16,20 +16,14 @@ env:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            rid: win-x64
-            name: windows-x64
-          - os: ubuntu-latest
-            rid: linux-x64
-            name: linux-x64
-          - os: macos-13
-            rid: osx-x64
-            name: macos-x64
-          - os: macos-latest
-            rid: osx-arm64
-            name: macos-arm64
+          - { os: windows-latest,  rid: win-x64,     platform: windows-x64,  innoArch: x64compatible }
+          - { os: windows-latest,  rid: win-arm64,    platform: windows-arm64, innoArch: arm64 }
+          - { os: macos-latest,    rid: osx-arm64,    platform: macos-arm64 }
+          - { os: ubuntu-24.04,    rid: linux-x64,    platform: linux-x64,    debArch: amd64 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64, platform: linux-arm64,  debArch: arm64 }
 
     runs-on: ${{ matrix.os }}
 
@@ -42,146 +36,217 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+          # Change to 'preview' if .NET 10 is not yet GA
           dotnet-quality: 'ga'
 
       - name: Determine version
-        id: version
+        id: ver
         shell: bash
         run: |
-          REF="${GITHUB_REF_NAME}"
-          if [[ "$REF" == v* ]]; then
-            echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF_NAME" == v* ]]; then
+            echo "v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
           else
-            echo "version=0.0.0-dev" >> "$GITHUB_OUTPUT"
+            echo "v=0.0.0-dev" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish
+      # ═══════════════════════════════════════════════════
+      #  Publish — 3 modes
+      # ═══════════════════════════════════════════════════
+
+      - name: Publish — NativeAOT
         run: >
-          dotnet publish HardwareMonitor.csproj
-          -c Release
+          dotnet publish HardwareMonitor.csproj -c Release
+          -r ${{ matrix.rid }}
+          -p:PublishAot=true
+          -p:DebugType=none
+          -p:Version=${{ steps.ver.outputs.v }}
+          -o dist/nativeaot
+
+      - name: Publish — Runtime (self-contained)
+        run: >
+          dotnet publish HardwareMonitor.csproj -c Release
           -r ${{ matrix.rid }}
           --self-contained
           -p:PublishAot=false
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:DebugType=none
-          -p:Version=${{ steps.version.outputs.version }}
-          -o dist
+          -p:Version=${{ steps.ver.outputs.v }}
+          -o dist/runtime
 
-      # ── Portable ──────────────────────────────────────
-      - name: Package portable (Windows)
+      - name: Publish — Portable (framework-dependent)
+        run: >
+          dotnet publish HardwareMonitor.csproj -c Release
+          -r ${{ matrix.rid }}
+          --no-self-contained
+          -p:PublishAot=false
+          -p:PublishSingleFile=true
+          -p:DebugType=none
+          -p:Version=${{ steps.ver.outputs.v }}
+          -o dist/portable
+
+      - name: Remove XML docs from dist
+        shell: bash
+        run: find dist -name '*.xml' -delete 2>/dev/null || true
+
+      # ═══════════════════════════════════════════════════
+      #  Archives — nativeaot-portable & runtime-portable
+      # ═══════════════════════════════════════════════════
+
+      - name: Archive portables (Windows)
         if: runner.os == 'Windows'
-        run: Compress-Archive -Path dist\* -DestinationPath HardwareMonitor-${{ matrix.name }}-portable.zip
+        run: |
+          Compress-Archive -Path dist\nativeaot\* -DestinationPath "HardwareMonitor-${{ matrix.platform }}-nativeaot-portable.zip"
+          Compress-Archive -Path dist\runtime\*   -DestinationPath "HardwareMonitor-${{ matrix.platform }}-runtime-portable.zip"
 
-      - name: Package portable (Unix)
+      - name: Archive portables (Unix)
         if: runner.os != 'Windows'
-        run: tar -czf HardwareMonitor-${{ matrix.name }}-portable.tar.gz -C dist .
+        run: |
+          tar -czf "HardwareMonitor-${{ matrix.platform }}-nativeaot-portable.tar.gz" -C dist/nativeaot .
+          tar -czf "HardwareMonitor-${{ matrix.platform }}-runtime-portable.tar.gz"   -C dist/runtime .
 
-      # ── Setup: Windows (Inno Setup) ──────────────────
-      - name: Build Windows installer
+      # ═══════════════════════════════════════════════════
+      #  Windows installers (Inno Setup)
+      # ═══════════════════════════════════════════════════
+
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup -y --no-progress
+
+      - name: Build Windows runtime installer
         if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          choco install innosetup -y --no-progress
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss "/DMyAppVersion=${{ steps.version.outputs.version }}"
+        run: >
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+          "/DMyAppVersion=${{ steps.ver.outputs.v }}"
+          "/DDistDir=dist\runtime"
+          "/DOutputName=HardwareMonitor-${{ matrix.platform }}-runtime-setup"
+          "/DArchAllowed=${{ matrix.innoArch }}"
 
-      # ── Setup: Linux (.deb) ──────────────────────────
-      - name: Build Linux deb package
+      - name: Build Windows portable installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+          "/DMyAppVersion=${{ steps.ver.outputs.v }}"
+          "/DDistDir=dist\portable"
+          "/DOutputName=HardwareMonitor-${{ matrix.platform }}-portable-setup"
+          "/DArchAllowed=${{ matrix.innoArch }}"
+
+      # ═══════════════════════════════════════════════════
+      #  Linux installers (.deb)
+      # ═══════════════════════════════════════════════════
+
+      - name: Build Linux deb packages
         if: runner.os == 'Linux'
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          mkdir -p pkg/DEBIAN pkg/opt/hardware-monitor pkg/usr/share/applications
+          VERSION="${{ steps.ver.outputs.v }}"
+          PLATFORM="${{ matrix.platform }}"
+          ARCH="${{ matrix.debArch }}"
 
-          cp -r dist/* pkg/opt/hardware-monitor/
-          chmod +x pkg/opt/hardware-monitor/HardwareMonitor
+          for MODE in runtime portable; do
+            PKG="pkg-${MODE}"
+            mkdir -p "${PKG}/DEBIAN" "${PKG}/opt/hardware-monitor" "${PKG}/usr/share/applications"
+            cp -r "dist/${MODE}"/* "${PKG}/opt/hardware-monitor/"
+            chmod +x "${PKG}/opt/hardware-monitor/HardwareMonitor"
 
-          cat > pkg/DEBIAN/control << 'CTRL'
-          Package: hardware-monitor
-          Version: VERSIONPLACEHOLDER
-          Section: utils
-          Priority: optional
-          Architecture: amd64
-          Depends: libicu-dev
-          Maintainer: MadLongTom
-          Description: Hardware Monitor
-           Cross-platform hardware monitoring application built with Avalonia UI.
-          CTRL
-          sed -i 's/^          //' pkg/DEBIAN/control
-          sed -i "s/VERSIONPLACEHOLDER/${VERSION}/" pkg/DEBIAN/control
+            DEPS=""
+            DESC="Cross-platform hardware monitoring application. Includes .NET runtime."
+            SUFFIX="runtime-setup"
+            if [ "${MODE}" = "portable" ]; then
+              DEPS="dotnet-runtime-10.0"
+              DESC="Cross-platform hardware monitoring application. Requires .NET 10 runtime."
+              SUFFIX="portable-setup"
+            fi
 
-          cat > pkg/usr/share/applications/hardware-monitor.desktop << 'DESK'
-          [Desktop Entry]
-          Name=Hardware Monitor
-          Comment=System hardware monitoring tool
-          Exec=/opt/hardware-monitor/HardwareMonitor
-          Terminal=false
-          Type=Application
-          Categories=System;Monitor;
-          DESK
-          sed -i 's/^          //' pkg/usr/share/applications/hardware-monitor.desktop
+            {
+              echo "Package: hardware-monitor"
+              echo "Version: ${VERSION}"
+              echo "Section: utils"
+              echo "Priority: optional"
+              echo "Architecture: ${ARCH}"
+              [ -n "${DEPS}" ] && echo "Depends: ${DEPS}"
+              echo "Maintainer: MadLongTom"
+              echo "Description: Hardware Monitor (${MODE})"
+              echo " ${DESC}"
+            } > "${PKG}/DEBIAN/control"
 
-          dpkg-deb --build pkg "HardwareMonitor-${{ matrix.name }}-setup.deb"
+            {
+              echo "[Desktop Entry]"
+              echo "Name=Hardware Monitor"
+              echo "Comment=System hardware monitoring tool"
+              echo "Exec=/opt/hardware-monitor/HardwareMonitor"
+              echo "Terminal=false"
+              echo "Type=Application"
+              echo "Categories=System;Monitor;"
+            } > "${PKG}/usr/share/applications/hardware-monitor.desktop"
 
-      # ── Setup: macOS (.dmg) ──────────────────────────
-      - name: Build macOS DMG
+            dpkg-deb --build "${PKG}" "HardwareMonitor-${PLATFORM}-${SUFFIX}.deb"
+          done
+
+      # ═══════════════════════════════════════════════════
+      #  macOS installers (.dmg)
+      # ═══════════════════════════════════════════════════
+
+      - name: Build macOS DMG packages
         if: runner.os == 'macOS'
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          APP="HardwareMonitor.app"
-          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          VERSION="${{ steps.ver.outputs.v }}"
+          PLATFORM="${{ matrix.platform }}"
+          brew install create-dmg || true
 
-          cp -r dist/* "$APP/Contents/MacOS/"
-          chmod +x "$APP/Contents/MacOS/HardwareMonitor"
+          for MODE in runtime portable; do
+            SUFFIX="${MODE}-setup"
+            [ "${MODE}" = "portable" ] && SUFFIX="portable-setup"
 
-          cat > "$APP/Contents/Info.plist" << PLIST
+            WORK="build-${MODE}"
+            APP="${WORK}/HardwareMonitor.app"
+            mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
+            cp -r "dist/${MODE}"/* "${APP}/Contents/MacOS/"
+            chmod +x "${APP}/Contents/MacOS/HardwareMonitor"
+
+            cat > "${APP}/Contents/Info.plist" << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
             "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
-          <dict>
-            <key>CFBundleName</key>
-            <string>Hardware Monitor</string>
-            <key>CFBundleExecutable</key>
-            <string>HardwareMonitor</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.madlongtom.hardwaremonitor</string>
-            <key>CFBundleVersion</key>
-            <string>${VERSION}</string>
-            <key>CFBundleShortVersionString</key>
-            <string>${VERSION}</string>
-            <key>CFBundlePackageType</key>
-            <string>APPL</string>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-          </dict>
+            <dict>
+              <key>CFBundleName</key>
+              <string>Hardware Monitor</string>
+              <key>CFBundleExecutable</key>
+              <string>HardwareMonitor</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.madlongtom.hardwaremonitor</string>
+              <key>CFBundleVersion</key>
+              <string>${VERSION}</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${VERSION}</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+            </dict>
           </plist>
           PLIST
-          sed -i '' 's/^          //' "$APP/Contents/Info.plist"
 
-          brew install create-dmg || true
-          create-dmg \
-            --volname "HardwareMonitor" \
-            --window-size 600 400 \
-            --icon "HardwareMonitor.app" 150 200 \
-            --app-drop-link 450 200 \
-            "HardwareMonitor-${{ matrix.name }}-setup.dmg" \
-            "$APP" || true
+            create-dmg \
+              --volname "HardwareMonitor" \
+              --window-size 600 400 \
+              --icon "HardwareMonitor.app" 150 200 \
+              --app-drop-link 450 200 \
+              "HardwareMonitor-${PLATFORM}-${SUFFIX}.dmg" \
+              "${WORK}/" || true
+          done
 
-      # ── Upload ───────────────────────────────────────
-      - name: Upload portable
+      # ═══════════════════════════════════════════════════
+      #  Upload
+      # ═══════════════════════════════════════════════════
+
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: portable-${{ matrix.name }}
-          path: |
-            *.zip
-            *.tar.gz
-
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: setup-${{ matrix.name }}
-          path: |
-            *-setup*
+          name: release-${{ matrix.platform }}
+          path: HardwareMonitor-${{ matrix.platform }}-*
 
   release:
     needs: build
@@ -197,7 +262,13 @@ jobs:
           merge-multiple: true
 
       - name: List release files
-        run: ls -la
+        run: ls -lh HardwareMonitor-*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: HardwareMonitor-*
+          generate_release_notes: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
