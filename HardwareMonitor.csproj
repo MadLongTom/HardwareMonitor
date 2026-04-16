@@ -8,7 +8,6 @@
     <Platforms>x64;ARM64</Platforms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <PublishAot>true</PublishAot>
     <!-- Exclude submodule sources from this project's compile glob -->
     <DefaultItemExcludes>$(DefaultItemExcludes);lib/**</DefaultItemExcludes>
   </PropertyGroup>
@@ -27,6 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="lib\LibreHardwareMonitor\LibreHardwareMonitorLib\LibreHardwareMonitorLib.csproj" />
+    <ProjectReference Include="lib\LibreHardwareMonitor\LibreHardwareMonitorLib\LibreHardwareMonitorLib.csproj"
+                      SetTargetFramework="TargetFramework=net10.0"
+                      GlobalPropertiesToRemove="PublishAot" />
   </ItemGroup>
 </Project>

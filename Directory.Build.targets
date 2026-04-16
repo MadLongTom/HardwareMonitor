@@ -1,0 +1,7 @@
+<Project>
+  <!-- Force LibreHardwareMonitorLib to build only net10.0 -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'LibreHardwareMonitorLib'">
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+</Project>
