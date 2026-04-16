@@ -1,0 +1,57 @@
+name: Check Upstream LibreHardwareMonitor
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check for submodule updates
+        id: check
+        run: |
+          OLD=$(git -C lib/LibreHardwareMonitor rev-parse HEAD)
+          git submodule update --remote lib/LibreHardwareMonitor
+          NEW=$(git -C lib/LibreHardwareMonitor rev-parse HEAD)
+
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+
+          if [ "$OLD" != "$NEW" ]; then
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+            SHORT_NEW=${NEW:0:7}
+            echo "short=$SHORT_NEW" >> "$GITHUB_OUTPUT"
+          else
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit submodule update
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          git add lib/LibreHardwareMonitor
+          git commit -m "chore: update LibreHardwareMonitor to ${{ steps.check.outputs.short }}"
+
+      - name: Create beta tag and push
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          TAG="v0.0.0-beta.$(date -u '+%Y%m%d%H%M%S')"
+          git tag "$TAG"
+          git push origin master "$TAG"

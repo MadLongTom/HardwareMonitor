@@ -269,12 +269,4 @@ jobs:
         with:
           files: HardwareMonitor-*
           generate_release_notes: true
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            *.zip
-            *.tar.gz
-            *-setup*
-          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, 'beta') }}
