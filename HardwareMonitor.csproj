@@ -9,6 +9,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <PublishAot>true</PublishAot>
+    <!-- Exclude submodule sources from this project's compile glob -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);lib/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LibreHardwareMonitor\LibreHardwareMonitorLib\LibreHardwareMonitorLib.csproj" />
+    <ProjectReference Include="lib\LibreHardwareMonitor\LibreHardwareMonitorLib\LibreHardwareMonitorLib.csproj" />
   </ItemGroup>
 </Project>

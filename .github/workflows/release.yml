@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
   build:
     strategy:
@@ -31,14 +35,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Clone LibreHardwareMonitor
-        run: git clone --depth 1 -b fix/nct6687d-fan-curve-write https://github.com/MadLongTom/LibreHardwareMonitor.git ../LibreHardwareMonitor
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+          dotnet-quality: 'ga'
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          REF="${GITHUB_REF_NAME}"
+          if [[ "$REF" == v* ]]; then
+            echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0-dev" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Publish
         run: >
@@ -50,6 +65,7 @@ jobs:
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:DebugType=none
+          -p:Version=${{ steps.version.outputs.version }}
           -o dist
 
       # ── Portable ──────────────────────────────────────
@@ -64,27 +80,24 @@ jobs:
       # ── Setup: Windows (Inno Setup) ──────────────────
       - name: Build Windows installer
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           choco install innosetup -y --no-progress
-          $version = "${{ github.ref_name }}".TrimStart('v')
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss /DMyAppVersion=$version
-        shell: pwsh
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss "/DMyAppVersion=${{ steps.version.outputs.version }}"
 
       # ── Setup: Linux (.deb) ──────────────────────────
       - name: Build Linux deb package
         if: runner.os == 'Linux'
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          mkdir -p pkg/DEBIAN
-          mkdir -p pkg/opt/hardware-monitor
-          mkdir -p pkg/usr/share/applications
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p pkg/DEBIAN pkg/opt/hardware-monitor pkg/usr/share/applications
 
           cp -r dist/* pkg/opt/hardware-monitor/
           chmod +x pkg/opt/hardware-monitor/HardwareMonitor
 
-          cat > pkg/DEBIAN/control <<EOF
+          cat > pkg/DEBIAN/control << 'CTRL'
           Package: hardware-monitor
-          Version: ${VERSION}
+          Version: VERSIONPLACEHOLDER
           Section: utils
           Priority: optional
           Architecture: amd64
@@ -92,11 +105,11 @@ jobs:
           Maintainer: MadLongTom
           Description: Hardware Monitor
            Cross-platform hardware monitoring application built with Avalonia UI.
-          EOF
-          # remove leading spaces added by heredoc indentation
+          CTRL
           sed -i 's/^          //' pkg/DEBIAN/control
+          sed -i "s/VERSIONPLACEHOLDER/${VERSION}/" pkg/DEBIAN/control
 
-          cat > pkg/usr/share/applications/hardware-monitor.desktop <<EOF
+          cat > pkg/usr/share/applications/hardware-monitor.desktop << 'DESK'
           [Desktop Entry]
           Name=Hardware Monitor
           Comment=System hardware monitoring tool
@@ -104,7 +117,7 @@ jobs:
           Terminal=false
           Type=Application
           Categories=System;Monitor;
-          EOF
+          DESK
           sed -i 's/^          //' pkg/usr/share/applications/hardware-monitor.desktop
 
           dpkg-deb --build pkg "HardwareMonitor-${{ matrix.name }}-setup.deb"
@@ -113,15 +126,14 @@ jobs:
       - name: Build macOS DMG
         if: runner.os == 'macOS'
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.version.outputs.version }}"
           APP="HardwareMonitor.app"
-          mkdir -p "$APP/Contents/MacOS"
-          mkdir -p "$APP/Contents/Resources"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
           cp -r dist/* "$APP/Contents/MacOS/"
           chmod +x "$APP/Contents/MacOS/HardwareMonitor"
 
-          cat > "$APP/Contents/Info.plist" <<EOF
+          cat > "$APP/Contents/Info.plist" << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
             "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -143,29 +155,33 @@ jobs:
             <true/>
           </dict>
           </plist>
-          EOF
+          PLIST
           sed -i '' 's/^          //' "$APP/Contents/Info.plist"
 
-          brew install create-dmg
+          brew install create-dmg || true
           create-dmg \
             --volname "HardwareMonitor" \
             --window-size 600 400 \
             --icon "HardwareMonitor.app" 150 200 \
             --app-drop-link 450 200 \
             "HardwareMonitor-${{ matrix.name }}-setup.dmg" \
-            "$APP" || true  # create-dmg returns 2 on success without code-sign
+            "$APP" || true
 
       # ── Upload ───────────────────────────────────────
-      - name: Upload artifacts
+      - name: Upload portable
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.name }}
+          name: portable-${{ matrix.name }}
           path: |
             *.zip
             *.tar.gz
-            *.exe
-            *.deb
-            *.dmg
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-${{ matrix.name }}
+          path: |
+            *-setup*
 
   release:
     needs: build
@@ -180,13 +196,14 @@ jobs:
         with:
           merge-multiple: true
 
+      - name: List release files
+        run: ls -la
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             *.zip
             *.tar.gz
-            *.exe
-            *.deb
-            *.dmg
+            *-setup*
           generate_release_notes: true

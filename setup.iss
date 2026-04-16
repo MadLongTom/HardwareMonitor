@@ -17,7 +17,6 @@ SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
-SetupIconFile=
 UninstallDisplayIcon={app}\{#MyAppExeName}
 WizardStyle=modern
 

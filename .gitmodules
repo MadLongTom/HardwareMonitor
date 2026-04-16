@@ -1,0 +1,4 @@
+[submodule "lib/LibreHardwareMonitor"]
+	path = lib/LibreHardwareMonitor
+	url = https://github.com/MadLongTom/LibreHardwareMonitor.git
+	branch = master
